@@ -33,7 +33,7 @@ int32_t InID_V31[4] = {4, 5, 7, 6}; // 内部的4个轮，左前-左后-右前-�
 int32_t OutID_V31[4] = {1, 0, 2, 3}; // 外部的4个轮，左前-左后-右前-右后
 int32_t InitPWM_V31 = 1550;
 int32_t PWM_V31[7][4] = {
-    {1580, 1600, 1590, 1595}, // Base
+    {1460, 1400, 1460, 1715}, // Base
     {1450, 1460, 1600, 1600}, // Front
     {1600, 1600, 1460, 1470}, // Back
     {1590, 1455, 1600, 1455}, // Left
@@ -41,9 +41,11 @@ int32_t PWM_V31[7][4] = {
     {1475, 1475, 1475, 1475}, // ClockWise
     {1585, 1585, 1585, 1585}  // AntiClockWise  
 };
-PID_Regulator_t DepthPID_V31(20, 0.005, 10, 100, 100, 100, 200);
-PID_Regulator_t PitchPID_V31(10,/*5*/ 0.04, 200, 100, 100, 100, 200);
-PID_Regulator_t RollPID_V31(5,/*2.5*/ 0.02, 100, 100, 100, 100, 200);
+PID_Regulator_t DepthPID_V31(20, 0.005, 10, 100, 100, 100, 200); 
+// PID_Regulator_t PitchPID_V31(0,0,0, 100, 100, 100, 200);
+PID_Regulator_t PitchPID_V31(25,/*5*/ 0.02, 300, 100, 100, 100, 200);
+// PID_Regulator_t RollPID_V31(0,0, 0, 100, 100, 100, 200);
+PID_Regulator_t RollPID_V31(15,/*2.5*/ 0.01, 150, 200, 100, 100, 200);
 PID_Regulator_t YawPID_V31(30, 0.02, 1000, 100, 100, 100, 200);
 
 Propeller_Parameter_t Parameter_V31(InID_V31, OutID_V31, InitPWM_V31, PWM_V31, DepthPID_V31, PitchPID_V31, RollPID_V31, YawPID_V31);
@@ -97,8 +99,8 @@ void Propeller_I2C::Receive(){
         if (mp.count(RxBuffer[0])){
             for(int i = 0; i < 4; ++i){
                 data[Parameter.OutID[i]] = mp[RxBuffer[0]][i];
+            }
         }
-    }
         if (strncmp((char*)RxBuffer, "OFF", 3) == 0) {
             flag_PID = false;
             for(int i=0;i<8;++i){
@@ -174,7 +176,7 @@ void Propeller_I2C::Handle(){
     TCA_SetChannel(4);
     //HAL_Delay(5);
     if(flag_PID){
-        // float_ctrl();//PID控制悬浮状态
+        float_ctrl();//PID控制悬浮状态
         // speed_ctrl();
     }
     for (int i = 0; i < PROPELLER_NUM; ++i) {
@@ -189,9 +191,9 @@ void Propeller_I2C::float_ctrl() {
     Component.Roll =  RollPID.PIDCalc(0.0, PressureSensor::pressure_sensor.data_roll);
     Component.Pitch =  PitchPID.PIDCalc(0.0, PressureSensor::pressure_sensor.data_pitch);
 
-    data[Parameter.InID[0]] = Parameter.BasePWM[0] - Component.Depth - Component.Roll - Component.Pitch;
-    data[Parameter.InID[1]] = Parameter.BasePWM[1] - Component.Depth - Component.Roll + Component.Pitch;
-    data[Parameter.InID[2]] = Parameter.BasePWM[2] - Component.Depth + Component.Roll - Component.Pitch;
+    data[Parameter.InID[0]] = Parameter.BasePWM[0] - (- Component.Depth - Component.Roll - Component.Pitch);
+    data[Parameter.InID[1]] = Parameter.BasePWM[1] - (- Component.Depth -Component.Roll + Component.Pitch);
+    data[Parameter.InID[2]] = Parameter.BasePWM[2] - (- Component.Depth + Component.Roll - Component.Pitch);
     data[Parameter.InID[3]] = Parameter.BasePWM[3] - Component.Depth + Component.Roll + Component.Pitch;
 
 }

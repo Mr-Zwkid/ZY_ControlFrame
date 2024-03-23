@@ -74,9 +74,15 @@ void PressureSensor::Handle(){
         pitch=atan(-data_plane[0]/(sqrt(data_plane[1]*data_plane[1]+data_plane[2]*data_plane[2])));//计算俯仰角
         roll=atan(data_plane[1]/data_plane[2]);//计算横滚角
          */
-        data_depth = (data_pressure[0]+data_pressure[1]+data_pressure[2]+data_pressure[3])/4;
-        data_roll = data_pressure[0]+data_pressure[1]-data_pressure[2]-data_pressure[3];
-        data_pitch = data_pressure[0]+data_pressure[2]-data_pressure[1]-data_pressure[3];
+
+        // 3-2-0-1 lf-lb-rf-rb
+        data_depth = (data_pressure[0]+data_pressure[1]+data_pressure[2])/3;
+        // data_roll = data_pressure[0]+data_pressure[1]-data_pressure[2]-data_pressure[3];
+        // data_pitch = data_pressure[0]+data_pressure[2]-data_pressure[1]-data_pressure[3];
+
+        data_roll = /*data_pressure[3]+*/ 2 * data_pressure[2]-data_pressure[0]-data_pressure[1];
+        data_pitch = /*data_pressure[3]*/-data_pressure[2]+2 * data_pressure[0]-data_pressure[1];
+
 
     //}
     //flag_Busy = 0;
@@ -249,10 +255,10 @@ void PressureSensor::Init_single(int id)
     }
 //------TODO:收到校准数据后修改此处零偏值
  
-    data_pressure_offset[0] = 1019.590;    
-    data_pressure_offset[1] = 1023.497;
-    data_pressure_offset[2] = 1018.505;
-    data_pressure_offset[3] = 1021.689;
+    data_pressure_offset[0] = 1019.259;    
+    data_pressure_offset[1] = 1007.981;
+    data_pressure_offset[2] = 1009.638;
+    data_pressure_offset[3] = 864.924;
 
 }
 
@@ -301,7 +307,6 @@ void PressureSensor::Handle_single(int id)
         data_pressure[id]=temp;
     }
     //if(data_pressure[id]>200||data_pressure[id]<-10) data_pressure[id]=last_measure[id]- data_pressure_offset[id];
-
 
 }
 

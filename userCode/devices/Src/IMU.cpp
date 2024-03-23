@@ -21,14 +21,8 @@ void IMU::Init() {
         velocity_peak[i] = 0;
     }
 
-    PID_Regulator_t _tempPID = {
-            .kp = 340,
-            .ki = 0.04,
-            .kd = 0.0,
-            .componentKpMax = 2000,
-            .componentKiMax = 900,
-            .outputMax = 999
-    };
+    PID_Regulator_t _tempPID(340, 0.04, 0, 2000, 900, 0, 999);
+
     tempPid.PIDInfo = _tempPID;
 
     quat_update[0] = 1.0f,quat_update[1] = 0,quat_update[2] = 0,quat_update[3] = 0;

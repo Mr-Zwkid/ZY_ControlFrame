@@ -13,7 +13,6 @@ class LED: public Device{
     void aRGB_led_change(uint32_t period);
 
 public:
-
     void Init();
     void Handle();
     void Receive();

@@ -103,7 +103,7 @@
         <bEvRecOn>1</bEvRecOn>
         <bSchkAxf>0</bSchkAxf>
         <bTchkAxf>0</bTchkAxf>
-        <nTsel>6</nTsel>
+        <nTsel>5</nTsel>
         <sDll></sDll>
         <sDllPa></sDllPa>
         <sDlgDll></sDlgDll>
@@ -411,6 +411,11 @@
           <count>18</count>
           <WinNumber>2</WinNumber>
           <ItemText>time_start,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>19</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>led</ItemText>
         </Ww>
       </WatchWindow2>
       <MemoryWindow1>

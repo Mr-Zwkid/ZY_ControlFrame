@@ -7,7 +7,7 @@
 
 #include "Usermain.h"
 
-typedef struct PID_Regulator {
+struct PID_Regulator_t {
     float ref;
     float fdb;
     float err[4];
@@ -23,11 +23,17 @@ typedef struct PID_Regulator {
     float componentKdMax;
     float output;
     float outputMax;
-} PID_Regulator_t;
+    PID_Regulator_t(){};
+    PID_Regulator_t(float kp, float ki, float kd, float pM, float iM, float dM, float oM):
+        kp(kp), ki(ki), kd(kd), componentKpMax(pM), componentKiMax(iM), componentKdMax(dM), outputMax(oM){};
+    PID_Regulator_t(const PID_Regulator_t& OTHER){
+        std::memcpy(this, &OTHER, sizeof(PID_Regulator_t));
+    }
+};
+
 
 class PID{
 public:
-
     PID_Regulator_t PIDInfo{};
     void Reset(PID_Regulator_t * pidRegulator);
     void Reset();

@@ -22,7 +22,6 @@
 // 静态实例化对象
 //static IMU imu;
 static Servo servo;
-static Propeller propeller;
 static Servo_I2C servo_i2c;
 static Propeller_I2C propeller_i2c;
 static Sonar sonar;

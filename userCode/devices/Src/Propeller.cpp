@@ -5,97 +5,56 @@
 #include "Sensor.h"
 #include "IMU.h"
 
-int32_t InID_V30[4] = {1, 2, 6, 5};
-int32_t OutID_V30[4] = {3, 0, 7, 4};
+// V30
+int32_t InID_V30[4] = {1, 2, 6, 5}; // 内部的4个轮，左前-左后-右前-右后
+int32_t OutID_V30[4] = {3, 0, 7, 4}; // 外部的4个轮，左前-左后-右前-右后
 int32_t InitPWM_V30 = 1500;
-int32_t BasePWM_V30[4] = {1580, 1600, 1590, 1595};
-int32_t FrontPWM_V30[4] = {1450, 1460, 1600, 1600};
-int32_t BackPWM_V30[4] = {1600, 1600, 1460, 1470};
-int32_t LeftPWM_V30[4] = {1590, 1455, 1600, 1455};
-int32_t RightPWM_V30[4] = {1465, 1590, 1460, 1600};
-int32_t ClockwisePWM_V30[4] = {1475, 1475, 1475, 1475};
-int32_t AnticlockwisePWM_V30[4] = {1585, 1585, 1585, 1585};
-  
-PID_Regulator_t DepthPID_V30={
-    .kp = 20,
-    .ki = 0.005,
-    .kd = 10,
-    .componentKpMax = 100,
-    .componentKiMax = 100,
-    .componentKdMax = 100,
-    .outputMax = 200
-};
-    
-PID_Regulator_t PitchPID_V30 = {
-    .kp = 10,//5,
-    .ki = 0.04,
-    .kd = 200.0,
-    .componentKpMax = 100,
-    .componentKiMax = 100,
-    .componentKdMax = 100,
-    .outputMax = 200
-};
-    
-PID_Regulator_t RollPID_V30 = {
-    .kp = 5,//2.5,
-    .ki = 0.02,
-    .kd = 100.0,
-    .componentKpMax = 100,
-    .componentKiMax = 100,
-    .componentKdMax = 100,
-    .outputMax = 200
+int32_t PWM_V30[7][4] = {
+    {1580, 1600, 1590, 1595}, // Base
+    {1450, 1460, 1600, 1600}, // Front
+    {1600, 1600, 1460, 1470}, // Back
+    {1590, 1455, 1600, 1455}, // Left
+    {1465, 1590, 1460, 1600}, // Right
+    {1475, 1475, 1475, 1475}, // ClockWise
+    {1585, 1585, 1585, 1585}  // AntiClockWise  
 };
  
-PID_Regulator_t YawPID_V30={
-    .kp = 30,
-    .ki = 0.02,
-    .kd = 1000,
-    .componentKpMax = 100,
-    .componentKiMax = 100,
-    .componentKdMax = 100,
-    .outputMax = 200
-};
-    
-PID_Regulator_t VxPID_V30 = {
-    .kp = 1,
-    .ki = 0,
-    .kd = 0,
-    .componentKpMax = 100,
-    .componentKiMax = 100,
-    .componentKdMax = 100,
-    .outputMax = 200
-};
-    
-PID_Regulator_t VyPID_V30 = {
-    .kp = 1,
-    .ki = 0,
-    .kd = 0,
-    .componentKpMax = 100,
-    .componentKiMax = 100,
-    .componentKdMax = 100,
-    .outputMax = 200
-};
+// 直接用构造函数
+PID_Regulator_t DepthPID_V30(20, 0.005, 10, 100, 100, 100, 200);
+PID_Regulator_t PitchPID_V30(10,/*5*/ 0.04, 200, 100, 100, 100, 200);
+PID_Regulator_t RollPID_V30(5, /*2.5*/ 0.02, 100, 100, 100, 100, 200);
+PID_Regulator_t YawPID_V30(30, 0.02, 1000, 100, 100, 100, 200);
 
-Propeller_Parameter_t Parameter_V30;
+Propeller_Parameter_t Parameter_V30(InID_V30, OutID_V30, InitPWM_V30, PWM_V30, DepthPID_V30, PitchPID_V30, RollPID_V30, YawPID_V30);
 
-void Propeller::Init(){
 
-    
-    for(int i=0;i<PROPELLER_NUM;++i){
-        data[i]=1500;
-    }
-    __HAL_TIM_SetCompare(&htim1, TIM_CHANNEL_1, data[0]);
-    __HAL_TIM_SetCompare(&htim1, TIM_CHANNEL_2, data[1]);
-    __HAL_TIM_SetCompare(&htim1, TIM_CHANNEL_3, data[2]);
-    __HAL_TIM_SetCompare(&htim1, TIM_CHANNEL_4, data[3]);
-    __HAL_TIM_SetCompare(&htim8, TIM_CHANNEL_1, data[4]);
-    __HAL_TIM_SetCompare(&htim8, TIM_CHANNEL_2, data[5]);
-    HAL_UARTEx_ReceiveToIdle_IT(&huart6, RxBuffer, SERIAL_LENGTH_MAX);
-}
+// V31
+int32_t InID_V31[4] = {4, 5, 7, 6}; // 内部的4个轮，左前-左后-右前-右后
+int32_t OutID_V31[4] = {1, 0, 2, 3}; // 外部的4个轮，左前-左后-右前-右后
+int32_t InitPWM_V31 = 1550;
+int32_t PWM_V31[7][4] = {
+    {1580, 1600, 1590, 1595}, // Base
+    {1450, 1460, 1600, 1600}, // Front
+    {1600, 1600, 1460, 1470}, // Back
+    {1590, 1455, 1600, 1455}, // Left
+    {1465, 1590, 1460, 1600}, // Right
+    {1475, 1475, 1475, 1475}, // ClockWise
+    {1585, 1585, 1585, 1585}  // AntiClockWise  
+};
+PID_Regulator_t DepthPID_V31(20, 0.005, 10, 100, 100, 100, 200);
+PID_Regulator_t PitchPID_V31(10,/*5*/ 0.04, 200, 100, 100, 100, 200);
+PID_Regulator_t RollPID_V31(5,/*2.5*/ 0.02, 100, 100, 100, 100, 200);
+PID_Regulator_t YawPID_V31(30, 0.02, 1000, 100, 100, 100, 200);
+
+Propeller_Parameter_t Parameter_V31(InID_V31, OutID_V31, InitPWM_V31, PWM_V31, DepthPID_V31, PitchPID_V31, RollPID_V31, YawPID_V31);
+
 
 void Propeller_I2C::Init(){
-    //------TODO：以下为三个自由度的PID参数，需要调试
-    DataCopy_V30();
+    std::memcpy(&Parameter,&Parameter_V31, sizeof(Propeller_Parameter_t));
+    DepthPID.PIDInfo = Parameter.DepthPID_P;
+    PitchPID.PIDInfo = Parameter.PitchPID_P;
+    RollPID.PIDInfo = Parameter.RollPID_P;
+    YawPID.PIDInfo = Parameter.YawPID_P;
     Target_depth = 30;
     Target_angle = 0;
     Target_speed[0] = 0;
@@ -104,11 +63,11 @@ void Propeller_I2C::Init(){
     TCA_SetChannel(4);
     HAL_Delay(5);
     PCA_Write(PCA9685_MODE1,0x0);
-    PCA_Setfreq(50);//Hz
-    for(int i=0;i<PROPELLER_NUM;++i){
+    PCA_Setfreq(50); // Hz
+    for(int i = 0;i < PROPELLER_NUM; ++i){
         data[i] = Parameter.InitPWM;
         //------TODO：i为推进器在扩展版上的接口编号，根据接线修改，目前为0-7号
-        PCA_Setpwm(i,0,floor(data[i] * 4096 / 20000 + 0.5f));
+        PCA_Setpwm(i, 0, floor(data[i] * 4096 / 20000 + 0.5f));
     }
     /*data_receive[0] = 1500;
     data_receive[1] = 1500;
@@ -117,20 +76,29 @@ void Propeller_I2C::Init(){
     data_receive[4] = 300;*/
 
     HAL_UARTEx_ReceiveToIdle_IT(&huart6, RxBuffer, SERIAL_LENGTH_MAX);
+};
 
-}
 
-void Propeller::Receive(){
-    data_extract(RxBuffer, data, PROPELLER_NUM);
-    //HAL_UARTEx_ReceiveToIdle_IT(&huart6, RxBuffer, SERIAL_LENGTH_MAX);
-}
 
 
 void Propeller_I2C::Receive(){
 
     int32_t data_receive[8];
-    if(flag_PID){
+    unordered_map<char, int32_t *> mp;
+    mp['W'] = Parameter.FrontPWM;
+    mp['S'] = Parameter.BackPWM;
+    mp['A'] = Parameter.LeftPWM;
+    mp['D'] = Parameter.RightPWM;
+    mp['E'] = Parameter.ClockwisePWM;
+    mp['Q'] = Parameter.AnticlockwisePWM;
 
+
+    if(flag_PID){
+        if (mp.count(RxBuffer[0])){
+            for(int i = 0; i < 4; ++i){
+                data[Parameter.OutID[i]] = mp[RxBuffer[0]][i];
+        }
+    }
         if (strncmp((char*)RxBuffer, "OFF", 3) == 0) {
             flag_PID = false;
             for(int i=0;i<8;++i){
@@ -166,42 +134,6 @@ void Propeller_I2C::Receive(){
             Target_speed[1] = data_receive[1];
             Target_angle = data_receive[2]*3.14/180;
         }
-        
-        if (strncmp((char*)RxBuffer, "W", 1) == 0) {
-            for(int i=0;i<4;++i){
-                data[Parameter.OutID[i]] = Parameter.FrontPWM[i];
-            }
-        }
-
-        if (strncmp((char*)RxBuffer, "S", 1) == 0) {
-           for(int i=0;i<4;++i){
-                data[Parameter.OutID[i]] = Parameter.BackPWM[i];
-            }
-        }
-
-        if (strncmp((char*)RxBuffer, "A", 1) == 0) {
-            for(int i=0;i<4;++i){
-                data[Parameter.OutID[i]] = Parameter.LeftPWM[i];
-            }
-        }
-
-        if (strncmp((char*)RxBuffer, "D", 1) == 0) {
-            for(int i=0;i<4;++i){
-                data[Parameter.OutID[i]] = Parameter.RightPWM[i];
-            }
-        }
-
-        if (strncmp((char*)RxBuffer, "E", 1) == 0) {
-            for(int i=0;i<4;++i){
-                data[Parameter.OutID[i]] = Parameter.ClockwisePWM[i];
-            }
-        }
-
-        if (strncmp((char*)RxBuffer, "Q", 1) == 0) {
-            for(int i=0;i<4;++i){
-                data[Parameter.OutID[i]] = Parameter.AnticlockwisePWM[i];
-            }
-        }
 
         if (strncmp((char*)RxBuffer, "H:", 2) == 0) {
             char *data_str = (char*)RxBuffer + 2;
@@ -236,47 +168,20 @@ void Propeller_I2C::Receive(){
     }  
 }
 
-void Propeller::Handle(){
-   
-    __HAL_TIM_SetCompare(&htim1, TIM_CHANNEL_1, data[0]);
-    __HAL_TIM_SetCompare(&htim1, TIM_CHANNEL_2, data[1]);
-    __HAL_TIM_SetCompare(&htim1, TIM_CHANNEL_3, data[2]);
-    __HAL_TIM_SetCompare(&htim1, TIM_CHANNEL_4, data[3]);
-    __HAL_TIM_SetCompare(&htim8, TIM_CHANNEL_1, data[4]);
-    __HAL_TIM_SetCompare(&htim8, TIM_CHANNEL_2, data[5]);
-    
-}
 
 void Propeller_I2C::Handle(){
 
     TCA_SetChannel(4);
     //HAL_Delay(5);
     if(flag_PID){
-        float_ctrl();//PID控制悬浮状态
-        speed_ctrl();
+        // float_ctrl();//PID控制悬浮状态
+        // speed_ctrl();
     }
     for (int i = 0; i < PROPELLER_NUM; ++i) {
         //------TODO：i为推进器在扩展版上的接口编号，根据接线修改，目前为0-7号
         PCA_Setpwm(i, 0, floor(data[i] * 4096 / 20000 + 0.5f));
     }
 }
-
-
-void Propeller::data_extract(uint8_t *rx, int32_t *data, int32_t num){
-    // 示例：假设 PWM 命令格式是 "PWM:1000,2000,1500,1800,1600,1400"
-    if (strncmp((char*)rx, "PRO:", 4) == 0) {
-
-        char *data_str = (char*)rx + 4;
-        char *token = strtok(data_str, ",");
-        int i = 0;
-        while (token != NULL && i < num) {
-            data[i] = atoi(token);
-            token = strtok(NULL, ",");
-            i++;
-        }
-    }
-}
-
 
 void Propeller_I2C::float_ctrl() {
 
@@ -303,9 +208,6 @@ void Propeller_I2C::speed_ctrl(){
 
     Component.Yaw = YawPID.PIDCalc(0, angle_error);
 
-    
-
-    
     data[Parameter.OutID[0]] = 1530 + Component_Calc(- Component.Yaw - Component.Vx + Component.Vy);
     data[Parameter.OutID[1]] = 1530 + Component_Calc(- Component.Yaw - Component.Vx - Component.Vy);
     data[Parameter.OutID[2]] = 1530 + Component_Calc(- Component.Yaw + Component.Vx + Component.Vy);
@@ -320,30 +222,3 @@ float Propeller_I2C::Component_Calc(float data){
 
 }
 
-void Propeller_I2C::DataCopy_V30(){
-    Parameter_V30.InitPWM = InitPWM_V30;
-    std::memcpy(Parameter_V30.InID, InID_V30, sizeof(InID_V30));
-    std::memcpy(Parameter_V30.OutID, OutID_V30, sizeof(OutID_V30));
-    std::memcpy(Parameter_V30.BasePWM, BasePWM_V30, sizeof(BasePWM_V30));
-    std::memcpy(Parameter_V30.FrontPWM, FrontPWM_V30, sizeof(FrontPWM_V30));
-    std::memcpy(Parameter_V30.BackPWM, BackPWM_V30, sizeof(BackPWM_V30));
-    std::memcpy(Parameter_V30.LeftPWM, LeftPWM_V30, sizeof(LeftPWM_V30));
-    std::memcpy(Parameter_V30.RightPWM, RightPWM_V30, sizeof(RightPWM_V30));
-    std::memcpy(Parameter_V30.ClockwisePWM, ClockwisePWM_V30, sizeof(ClockwisePWM_V30));
-    std::memcpy(Parameter_V30.AnticlockwisePWM, AnticlockwisePWM_V30, sizeof(AnticlockwisePWM_V30));
-	std::memcpy(&Parameter_V30.DepthPID_P, &DepthPID_V30, sizeof(PID_Regulator_t));
-    std::memcpy(&Parameter_V30.PitchPID_P, &PitchPID_V30, sizeof(PID_Regulator_t));
-    std::memcpy(&Parameter_V30.RollPID_P, &RollPID_V30, sizeof(PID_Regulator_t));
-    std::memcpy(&Parameter_V30.YawPID_P, &YawPID_V30, sizeof(PID_Regulator_t));
-    std::memcpy(&Parameter_V30.VxPID_P, &VxPID_V30, sizeof(PID_Regulator_t));
-    std::memcpy(&Parameter_V30.VyPID_P, &VyPID_V30, sizeof(PID_Regulator_t));
-
-    std::memcpy(&Parameter, &Parameter_V30, sizeof(Propeller_Parameter_t));
-
-    DepthPID.PIDInfo = Parameter.DepthPID_P;
-    PitchPID.PIDInfo = Parameter.PitchPID_P;
-    RollPID.PIDInfo = Parameter.RollPID_P;
-    YawPID.PIDInfo = Parameter.YawPID_P;
-    VxPID.PIDInfo = Parameter.VxPID_P;
-    VyPID.PIDInfo = Parameter.VyPID_P;
-}

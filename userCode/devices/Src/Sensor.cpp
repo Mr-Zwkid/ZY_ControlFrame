@@ -1,6 +1,3 @@
-//
-// Created by admin on 2023/11/27.
-//
 #include "Sensor.h"
 #include "Kalman_filter.h"
 
@@ -89,7 +86,6 @@ void PressureSensor::Handle()
             for (int i = 0; i < SENSOR_NUM; ++i)
             {
                 TCA_SetChannel(i);
-                // HAL_Delay(5);
                 Handle_single(i);     // 收集每个传感器数据
                 OutputData_single(i); // 串口发送传感器的数据
             }
@@ -100,15 +96,13 @@ void PressureSensor::Handle()
             for (int i = 0; i < SENSOR_NUM; ++i)
             {
                 TCA_SetChannel(i);
-                // HAL_Delay(5);
                 Handle_single(i); // 收集每个传感器数据
             }
         }
 
-        CurrentID++;
-        if (CurrentID >= 4)
-            CurrentID = 0;
+        CurrentID = (CurrentID + 1) % 4;
     }
+    
     /*
     Update_plane();//计算机器人参考系下水面方程
     data_depth=-data_plane[3];//计算深度

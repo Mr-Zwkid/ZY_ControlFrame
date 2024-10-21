@@ -1,22 +1,16 @@
-//
-// Created by LEGION on 2021/10/17.
-//
-
 #include "IMU.h"
-
-IMU IMU::imu;
-
+#include "ist8310driver.h"
 void IMU::Init() {
     if (BMI088_init() != BMI088_NO_ERROR) Error_Handler();
 #ifdef IMU_USE_MAG
     if(ist8310_init() != IST8310_NO_ERROR) Error_Handler();
 #endif
-    BMI088_read(rawData.gyro,rawData.accel,&rawData.temp);
+    BMI088_read(rawData.gyro, rawData.accel, &rawData.temp);
     offset();
     count_imu=0;
 
     flag_Test = false;
-    for(int i=0;i<6;++i){
+    for(int i = 0; i < 6; ++i){
         accel_peak[i] = 0;
         velocity_peak[i] = 0;
     }
@@ -25,16 +19,14 @@ void IMU::Init() {
 
     tempPid.PIDInfo = _tempPID;
 
-    quat_update[0] = 1.0f,quat_update[1] = 0,quat_update[2] = 0,quat_update[3] = 0;
-    quat_out[0] = 1.0f,quat_out[1] = 0,quat_out[2] = 0,quat_out[3] = 0;
+    quat_update[0] = 1.0f, quat_update[1] = quat_update[2] = quat_update[3] = 0;
+    quat_out[0] = 1.0f, quat_out[1] = quat_out[2] = quat_out[3] = 0;
 
     if(HAL_SPI_Init(&hspi1) != HAL_OK) Error_Handler();
     SPI1_DMA_init((uint32_t)buf.gyro_dma_tx_buf, (uint32_t)buf.gyro_dma_rx_buf, SPI_DMA_GYRO_LENGHT);
 
     state.imu_start_dma_flag = 1;
-
 }
-
 
 
 void IMU::Handle() {
@@ -81,9 +73,9 @@ void IMU::Handle() {
     //if(flag_Test)
         get_peak();
 
-    if(count_imu>=1000){
-        for(int j=0;j<4;++j){
-            quat_out[j]=quat_update[j];
+    if(count_imu >= 1000){
+        for(int j=0; j<4; ++j){
+            quat_out[j] = quat_update[j];
         }
         count_imu=0;
     }
@@ -91,8 +83,7 @@ void IMU::Handle() {
     AHRS_update(quat_update, 0.001f, proData.accel_AHRS, rawData.mag);
     AHRS_out(quat_out, 0.001f, proData.gyro, proData.accel_AHRS, rawData.mag);
 
-    get_angle(quat_update,&attitude.yaw, &attitude.pitch, &attitude.rol);
-    //get_angle(quat_update,&attitude.yaw, &attitude.pitch, &attitude.rol);
+    get_angle(quat_update, &attitude.yaw, &attitude.pitch, &attitude.rol);
 
     attitude.yaw_v = proData.gyro[2];
     attitude.pitch_v = proData.gyro[0];
@@ -149,11 +140,6 @@ void IMU::ITHandle(uint16_t GPIO_Pin) {
 }
 
 /**
-  * @brief          open the SPI DMA accord to the value of imu_update_flag
-  * @param[in]      none
-  * @retval         none
-  */
-/**
   * @brief          根据imu_update_flag的值开启SPI DMA
   * @param[in]      temp:bmi088的温度
   * @retval         none
@@ -194,12 +180,6 @@ void IMU::imu_cmd_spi_dma(void)
         SPI1_DMA_enable((uint32_t)buf.accel_temp_dma_tx_buf, (uint32_t)buf.accel_temp_dma_rx_buf, SPI_DMA_ACCEL_TEMP_LENGHT);
         return;
     }
-
-}
-
-void DMA2_Stream0_IRQHandler(void){
-
-	IMU::imu.ITHandle();
 
 }
 
@@ -259,22 +239,22 @@ void IMU::ITHandle() {
 void IMU::ErrorHandle() {
 
 }
+
 /**
- *
  * @brief 姿态解算
  * @param quat[4]:四元数
  */
 void IMU::AHRS_update(float quat[4], float time, float accel[3], float mag[3])
 {
-#ifdef IMU_USE_MAG
-    MahonyAHRSupdate(quat, 0, 0, 0,
-            accel[0], accel[1], accel[2],
-            mag[0],mag[1], mag[2]);
-#else
-    MahonyAHRSupdate(quat, 0, 0, 0,
-            accel[0], accel[1], accel[2],
-            0,0,0);
-#endif
+    #ifdef IMU_USE_MAG
+        MahonyAHRSupdate(quat, 0, 0, 0,
+                accel[0], accel[1], accel[2],
+                mag[0],mag[1], mag[2]);
+    #else
+        MahonyAHRSupdate(quat, 0, 0, 0,
+                accel[0], accel[1], accel[2],
+                0,0,0);
+    #endif
 }
 
 void IMU::AHRS_out(float quat[4], float time, float gyro[3], float accel[3], float mag[3])
@@ -342,6 +322,7 @@ void IMU::imu_temp_control(float temp)
 void IMU::IMU_temp_PWM(float pwm) {
     __HAL_TIM_SetCompare(&htim10, TIM_CHANNEL_1, pwm);
 }
+
 /**
  * @brief 位置获取
  * @param _accel 上一次加速度值
@@ -352,21 +333,25 @@ void IMU::record_accel(float _accel[3], float accel[3]){
     _accel[1] = accel[1];
     _accel[2] = accel[2];
 }
+
 void IMU::get_velocity(float velocity[3],float _accel[3], float accel[3]){
     velocity[0] += ((_accel[0] + accel[0]) / 2 /CONTROL_FREQUENCY);
     velocity[1] += ((_accel[1] + accel[1]) / 2 /CONTROL_FREQUENCY);
     velocity[2] += ((_accel[2] + accel[2]) / 2 /CONTROL_FREQUENCY);
 }
+
 void IMU::record_velocity(float _velocity[3], float velocity[3]){
     _velocity[0] = velocity[0];
     _velocity[1] = velocity[1];
     _velocity[2] = velocity[2];
 }
+
 void IMU::get_displace(float displace[3], float _velocity[3], float velocity[3]){
     displace[0] += ((_velocity[0] + velocity[0]) / 2 /CONTROL_FREQUENCY);
     displace[1] += ((_velocity[1] + velocity[1]) / 2 /CONTROL_FREQUENCY);
     displace[2] += ((_velocity[2] + velocity[2]) / 2 /CONTROL_FREQUENCY);
 }
+
 /**
  * @brief 数据处理
  * @param accel
@@ -390,6 +375,7 @@ void IMU::offset(){
     rawData.gyro_offset[1] /=1000;
     rawData.gyro_offset[2] /=1000;
 }
+
 void IMU::data_adjust(float accel[3], float accel_AHRS[3], float _accel[3], float gyro[3], float _gyro[3]){
     //accel[0] = C1 * _accel[0] + C2 * _accel[1] + C3 * _accel[2] + Cx - rawData.accel_offset[0];//
     //accel[1] = C4 * _accel[0] + C5 * _accel[1] + C6 * _accel[2] + Cy - rawData.accel_offset[1];//
@@ -406,6 +392,7 @@ void IMU::data_adjust(float accel[3], float accel_AHRS[3], float _accel[3], floa
     gyro[2] = _gyro[2] - rawData.gyro_offset[2];
 
 }
+
 void IMU::velocityVerify(){
     /*static int xcount = 0;
     static int ycount = 0;

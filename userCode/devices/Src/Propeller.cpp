@@ -1,9 +1,8 @@
-//
-// Created by admin on 2023/10/30.
-//
 #include "Propeller.h"
 #include "Sensor.h"
 #include "IMU.h"
+
+extern IMU imu;
 
 // V30
 int32_t InID_V30[4] = {1, 2, 6, 5};  // 内部的4个轮，左前-左后-右前-右后
@@ -76,6 +75,7 @@ int32_t PWM_V32[7][4] = {
 PID_Regulator_t DepthPID_V32(20, 0.015, 33, 100, 100, 100, 200);
 PID_Regulator_t PitchPID_V32(10, /*5*/ 0.03, 33, 100, 100, 100, 200);
 PID_Regulator_t RollPID_V32(2.5, /*2.5*/ 0.03, 33, 100, 100, 100, 200);
+
 // PID_Regulator_t DepthPID_V31(20, 0.005, 10, 100, 100, 100, 200);
 // PID_Regulator_t PitchPID_V31(40,/*5*/ 0.02, 300, 100, 100, 100, 200);
 // PID_Regulator_t RollPID_V31(20,/*2.5*/ 0.01, 150, 200, 100, 100, 200);
@@ -107,6 +107,7 @@ int32_t PWM_V33[7][4] = {
 PID_Regulator_t DepthPID_V33(20, 0.015, 33, 100, 50, 50, 200);
 PID_Regulator_t PitchPID_V33(10, /*5*/ 0.03, 33, 50, 25, 25, 100);
 PID_Regulator_t RollPID_V33(2.5, /*2.5*/ 0.03, 33, 50, 25, 25, 100);
+
 // PID_Regulator_t DepthPID_V31(20, 0.005, 10, 100, 100, 100, 200);
 // PID_Regulator_t PitchPID_V31(40,/*5*/ 0.02, 300, 100, 100, 100, 200);
 // PID_Regulator_t RollPID_V31(20,/*2.5*/ 0.01, 150, 200, 100, 100, 200);
@@ -133,23 +134,30 @@ void Propeller_I2C::Init()
         std::memcpy(&Parameter, &Parameter_V33, sizeof(Propeller_Parameter_t));
         break;
     }
+
     DepthPID.PIDInfo = Parameter.DepthPID_P;
     PitchPID.PIDInfo = Parameter.PitchPID_P;
     RollPID.PIDInfo = Parameter.RollPID_P;
     YawPID.PIDInfo = Parameter.YawPID_P;
+    PitchAnglePID.PIDInfo = Parameter.PitchPID_P;
+    RollAnglePID.PIDInfo = Parameter.RollPID_P;
+    YawAnglePID.PIDInfo = Parameter.YawPID_P;
     Target_depth = 30;
     Target_angle = 0;
+    Target_roll = 0;
+    Target_pitch = 0;
+    Target_yaw = 0;
     Target_speed[0] = 0;
     Target_speed[1] = 0;
     flag_PID = false;
-    TCA_SetChannel(4);
+    TCA_SetChannel(4); // 1路 I2C 扩展为 8路
     HAL_Delay(5);
     PCA_Write(PCA9685_MODE1, 0x0);
     PCA_Setfreq(50); // Hz
     for (int i = 0; i < PROPELLER_NUM; ++i)
     {
         data[i] = Parameter.InitPWM;
-        //------TODO：i为推进器在扩展版上的接口编号，根据接线修改，目前为0-7号
+        //TODO：i为推进器在扩展版上的接口编号，根据接线修改，目前为0-7号
         PCA_Setpwm(i, 0, floor(data[i] * 4096 / 20000 + 0.5f));
     }
     /*data_receive[0] = 1500;
@@ -161,6 +169,7 @@ void Propeller_I2C::Init()
     HAL_UARTEx_ReceiveToIdle_IT(&huart6, RxBuffer, SERIAL_LENGTH_MAX);
 };
 
+// 根据串口指令设置PWM参数
 void Propeller_I2C::Receive()
 {
 
@@ -175,6 +184,7 @@ void Propeller_I2C::Receive()
 
     if (flag_PID)
     {
+        // 更新为前后左右的PWM
         if (mp.count(RxBuffer[0]))
         {
             for (int i = 0; i < 4; ++i)
@@ -182,6 +192,8 @@ void Propeller_I2C::Receive()
                 data[Parameter.OutID[i]] = mp[RxBuffer[0]][i];
             }
         }
+
+        // 关闭PID控制，更新为初始的PWM
         if (strncmp((char *)RxBuffer, "OFF", 3) == 0)
         {
             flag_PID = false;
@@ -192,6 +204,7 @@ void Propeller_I2C::Receive()
             Target_depth = 30;
         }
 
+        // 更新为给定的PWM，更新深度
         if (strncmp((char *)RxBuffer, "PRO:", 4) == 0)
         {
             char *data_str = (char *)RxBuffer + 4;
@@ -210,6 +223,7 @@ void Propeller_I2C::Receive()
             Target_depth = data_receive[4] / 10.0;
         }
 
+        // 更新速度与角速度
         if (strncmp((char *)RxBuffer, "VEL:", 4) == 0)
         {
             char *data_str = (char *)RxBuffer + 4;
@@ -226,12 +240,30 @@ void Propeller_I2C::Receive()
             Target_angle = data_receive[2] * 3.14 / 180;
         }
 
+        if (strncmp((char *)RxBuffer, "RPY:", 4) == 0) // 接收角度
+        {
+            char *data_str = (char *)RxBuffer + 4;
+            char *token = strtok(data_str, ",");
+            int i = 0;
+            while (token != NULL && i < 3)
+            {
+                data_receive[i] = atoi(token);
+                token = strtok(NULL, ",");
+                i++;
+            }
+            Target_roll = data_receive[0] * 3.14 / 180;
+            Target_pitch = data_receive[1] * 3.14 / 180;
+            Target_yaw = data_receive[2] * 3.14 / 180;
+        }
+
+        // 更新深度
         if (strncmp((char *)RxBuffer, "H:", 2) == 0)
         {
             char *data_str = (char *)RxBuffer + 2;
             Target_depth = atoi(data_str) / 10.0;
         }
 
+        // 更新为初始PWM
         if (strncmp((char *)RxBuffer, "Z", 1) == 0)
         {
             for (int i = 0; i < 4; ++i)
@@ -243,6 +275,7 @@ void Propeller_I2C::Receive()
 
     else
     {
+        // 开启PID控制，更新为初始PWM
         if (strncmp((char *)RxBuffer, "ON", 2) == 0)
         {
             flag_PID = true;
@@ -253,6 +286,7 @@ void Propeller_I2C::Receive()
             Target_depth = (PressureSensor::pressure_sensor.data_depth - 10.0 > 30.0) ? (PressureSensor::pressure_sensor.data_depth - 10.0) : 30.0;
         }
 
+        // 更新为给定的PWM
         if (strncmp((char *)RxBuffer, "TES:", 4) == 0)
         {
             char *data_str = (char *)RxBuffer + 4;
@@ -276,12 +310,14 @@ void Propeller_I2C::Handle()
     if (flag_PID)
     {
         float_ctrl(); // PID控制悬浮状态
+        angle_ctrl(); // 角度控制
         // speed_ctrl();
     }
+    
     flag_range = true;
     for (int i = 0; i < PROPELLER_NUM; ++i)
     {
-        //------TODO：i为推进器在扩展版上的接口编号，根据接线修改，目前为0-7号
+        // TODO：i为推进器在扩展版上的接口编号，根据接线修改，目前为0-7号
 
         if ((data[i] < 1000) || (data[i] > 2000))
             flag_range = false;
@@ -295,9 +331,9 @@ void Propeller_I2C::Handle()
     }
 
     // 串口发送推进器的数据
-     //for(int i=0;i<4;++i){
-     //    OutputData_single(i);
-     //}
+    //  for(int i=0;i<4;++i){
+    //     OutputData_single(i);
+    //  }
 }
 
 void Propeller_I2C::OutputData_single(int id)
@@ -323,7 +359,6 @@ void Propeller_I2C::OutputData_single(int id)
 
 void Propeller_I2C::float_ctrl()
 {
-
     Component.Depth = DepthPID.PIDCalc(Target_depth, PressureSensor::pressure_sensor.data_depth);
     Component.Roll = RollPID.PIDCalc(0.0, PressureSensor::pressure_sensor.data_roll);
     Component.Pitch = PitchPID.PIDCalc(0.0, PressureSensor::pressure_sensor.data_pitch);
@@ -364,7 +399,7 @@ void Propeller_I2C::speed_ctrl()
     // Component.Vy =  RollPID.PIDCalc(Target_speed[1], IMU::imu.position._velocity[1]);
     Component.Vx = Target_speed[0];
     Component.Vy = Target_speed[1];
-    angle_error = Target_angle - IMU::imu.attitude.yaw;
+    angle_error = Target_angle - imu.attitude.yaw;
     if (angle_error < -3.14)
         angle_error += 6.28;
     else if (angle_error > 3.14)
@@ -381,11 +416,24 @@ void Propeller_I2C::speed_ctrl()
     data[Parameter.OutID[3]] = 1530 + Component_Calc(-Component.Yaw + Component.Vx - Component.Vy);
 }
 
+void Propeller_I2C::angle_ctrl()
+{
+    Component.Roll_angle = RollAnglePID.PIDCalc(0, imu.attitude.rol - Target_roll);
+    Component.Pitch_angle = PitchAnglePID.PIDCalc(0, imu.attitude.pitch - Target_pitch);
+    Component.Yaw_angle = YawAnglePID.PIDCalc(0, imu.attitude.yaw - Target_yaw);
+    data[Parameter.InID[0]] = Parameter.BasePWM[0] - Sign_V33[Parameter.InID[0]] * (- Component.Roll_angle - Component.Pitch_angle);
+    data[Parameter.InID[1]] = Parameter.BasePWM[1] - Sign_V33[Parameter.InID[1]] * (- Component.Roll_angle + Component.Pitch_angle);
+    data[Parameter.InID[2]] = Parameter.BasePWM[2] - Sign_V33[Parameter.InID[2]] * (+ Component.Roll_angle - Component.Pitch_angle);
+    data[Parameter.InID[3]] = Parameter.BasePWM[3] - Sign_V33[Parameter.InID[3]] * (+ Component.Roll_angle + Component.Pitch_angle);
+
+
+    data[Parameter.OutID[0]] = 1530 - Component.Yaw_angle * 10;
+    data[Parameter.OutID[1]] = 1530 - Component.Yaw_angle * 10;
+    data[Parameter.OutID[2]] = 1530 - Component.Yaw_angle * 10;
+    data[Parameter.OutID[3]] = 1530 - Component.Yaw_angle * 10;
+}
+
 float Propeller_I2C::Component_Calc(float data)
 {
-
-    if (data > 0)
-        return (data + 60);
-    else
-        return (data - 60);
+    return (data > 0) ? data + 60 : data - 60;
 }

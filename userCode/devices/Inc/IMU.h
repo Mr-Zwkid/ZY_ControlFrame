@@ -14,7 +14,7 @@
 #include "PID.h"
 #include <stdint.h>
 
-#define IMU_USE_MAG
+#define IMU_USE_MAG               1 //new
 
 #define SPI_DMA_GYRO_LENGHT       8
 #define SPI_DMA_ACCEL_LENGHT      9
@@ -61,19 +61,18 @@ constexpr float zero_az = 9.63659286f;
 
 
 typedef struct IMU_Raw_Data{
-    float accel[3],gyro[3],temp,time,mag[3],accel_offset[3],gyro_offset[3], ax, ay, az;
-}IMU_Raw_Data_t;
+    float accel[3], gyro[3], temp, time, mag[3], accel_offset[3], gyro_offset[3], ax, ay, az;
+} IMU_Raw_Data_t;
 
 typedef struct IMU_Pro_Data{
-    float accel[3],accel_AHRS[3],gyro[3],temp,time,mag[3],ay;
-}IMU_Pro_Data_t;
+    float accel[3], accel_AHRS[3], gyro[3], temp, time, mag[3], ay;
+} IMU_Pro_Data_t;
 
 typedef struct IMU_Attitude{
-    float yaw,pitch,rol;
-
-    float yaw_v,pitch_v,rol_v;
-    float neg_yaw_v,neg_pitch_v,neg_rol_v;
-}IMU_Attitude_t;
+    float yaw, pitch, rol;
+    float yaw_v, pitch_v, rol_v;
+    float neg_yaw_v, neg_pitch_v, neg_rol_v;
+} IMU_Attitude_t;
 
 typedef struct IMU_state{
 	
@@ -121,18 +120,17 @@ typedef struct IMU_buffer{
 
 class IMU : public Device
 {
-
-
     void ErrorHandle();
 
     //读取数据
     IMU_buffer buf;
-
     IMU_state state;
     void imu_cmd_spi_dma(void);
     void filter(float *current, IMU_Filter Filter);
+
     //数据处理
     void velocityVerify();
+
     //姿态解算
     void offset();    //获取加速度零偏值
     void data_adjust(float accel[3],float accel_AHRS[3], float _accel[3], float gyro[3], float _gyro[3]);
@@ -145,12 +143,14 @@ class IMU : public Device
     void transmit_peak();
     void float_to_str(float data);
     bool flag_Test;
+
     //温度控制
     PID tempPid;
     uint8_t first_temperate;
     uint32_t count_imu;
     void imu_temp_control(float temp);
     void IMU_temp_PWM(float pwm);
+
     //位移获取
     void record_accel(float _accel[3], float accel[3]);
     void get_velocity(float velocity[3],float _accel[3], float accel[3]);
@@ -164,9 +164,7 @@ public:
     void Receive();
     void ITHandle(uint16_t GPIO_Pin);
     void ITHandle(void);
-
-    static IMU imu;
-
+    
     IMU_Raw_Data_t rawData;
     IMU_Pro_Data_t proData;
     IMU_Attitude_t attitude;

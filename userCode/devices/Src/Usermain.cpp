@@ -19,7 +19,7 @@
 VERSION_E Robot_Version = V33;//根据潜器版本调整，V30，V31，V32，V33
 
 // 静态实例化对象
-// static IMU imu;
+IMU imu;
 static Servo servo;
 static Servo_I2C servo_i2c;
 static Propeller_I2C propeller_i2c;
@@ -31,13 +31,16 @@ static Buzzer buzzer;
 // 设备指针数组，用于统一管理和调用设备操作
 //------TODO:选用需要的设备
 Device *device[DEVICE_NUM]={
-        &IMU::imu,                         //imu
+        &imu,                         //imu
         
         &PressureSensor::pressure_sensor,  //水压计
+
         &propeller_i2c,                    //推进器（扩展板pwm控制）
         //&propeller,                      //推进器（C板pwm控制）
+
         &servo_i2c,                        //舵机（扩展版pwm控制）
         //&servo,                          //舵机（c板pwm控制）
+
         //&watchdog,                       //看门狗
         &led,                              //LED灯
         //&buzzer                            //蜂鸣器
@@ -55,19 +58,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
     if(init_Flag == 0) return;
     if(htim == &htim1){//60Hz
-        for(int i=0;i<DEVICE_NUM;++i){
-                device[i]->Handle();
+        for(int i = 0;i < DEVICE_NUM; ++i){
+                device[i] -> Handle();
         }
     }
-    /*
-    if(htim == &htim7){
 
-    }
-    if(htim == &htim10){
+    // if(htim == &htim7){
+    // }
+    // if(htim == &htim10){
+    //     //aRGB_led_change(period);
+    // }
 
-        //aRGB_led_change(period);
-    }
-*/
 }
 
 volatile uint8_t key_raw_state = 1;
@@ -77,10 +78,10 @@ uint32_t key_last_stamp;
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t datasize)//HAL_UART_RxCpltCallback
 {
     if(huart->Instance==USART6) {
-        for(int i=0;i<DEVICE_NUM;++i){
+        for(int i = 0; i < DEVICE_NUM; ++i){
             device[i]->Receive();
         }
-        for(int i=0;i<SERIAL_LENGTH_MAX;++i){
+        for(int i = 0; i < SERIAL_LENGTH_MAX; ++i){
             RxBuffer[i] = 0;
         }
         HAL_UARTEx_ReceiveToIdle_IT(&huart6, RxBuffer, SERIAL_LENGTH_MAX);
@@ -103,7 +104,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
             }
         }*/
     }
-    IMU::imu.ITHandle(GPIO_Pin);
+    imu.ITHandle(GPIO_Pin);
+}
+
+void DMA2_Stream0_IRQHandler(void){
+
+	imu.ITHandle();
+
 }
 
 // 主函数入口
@@ -120,6 +127,7 @@ int main(void)
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
     MX_DMA_Init();
+
     MX_TIM5_Init();
     MX_TIM1_Init();
     MX_TIM4_Init();
@@ -127,8 +135,10 @@ int main(void)
     MX_TIM7_Init();
     MX_TIM10_Init();
     MX_TIM8_Init();
+
     MX_ADC1_Init();
     MX_ADC3_Init();
+
     MX_USART1_UART_Init();
     MX_USART6_UART_Init();
     MX_USART3_UART_Init();
@@ -140,7 +150,6 @@ int main(void)
     MX_SPI2_Init();
     //MX_IWDG_Init();
     MX_USB_DEVICE_Init();
-    /* USER CODE BEGIN 2 */
 
     HAL_TIM_Base_Start_IT(&htim5);
     HAL_TIM_Base_Start_IT(&htim1);
@@ -164,7 +173,7 @@ int main(void)
 
     // 初始化所有设备
     for(int i = 0; i < DEVICE_NUM; ++i){
-        device[i]->Init();
+        device[i] -> Init();
     }
 
     // 设置初始化完成标志

@@ -57,6 +57,7 @@ private:
     float angle_error;
     float Target_speed[3];
     bool flag_PID;
+    bool flag_angle;
     bool flag_range;
     PID DepthPID, RollPID, PitchPID;
     PID VxPID, VyPID, YawPID;

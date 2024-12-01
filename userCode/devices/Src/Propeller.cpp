@@ -246,7 +246,7 @@ void Propeller_I2C::Receive()
             if (strncmp((char *)RxBuffer, "RPY:ON", 6) == 0){
                 flag_angle = true;
             }
-            else if (strncmp((char *)RxBuffer, "RPY:OFF", 6) == 0){
+            else if (strncmp((char *)RxBuffer, "RPY:OFF", 7) == 0){
                 flag_angle = false;
             }
             else {
@@ -434,15 +434,26 @@ void Propeller_I2C::angle_ctrl()
 {
     static float lastYaw = 0;
     static float newYaw = 0;
-    float factor = 10.0;
+    float factor = 5.0;
     float deadZone = 1.0; //degree
-    int deadBand = 100;
-    int outMax = 200;
-    float bias = 45.0; //degree
+    int deadBand = 80;
+    int outMax = 120;
+    float bias = 0; //degree
+    float pi = 3.14159265358;
+    float angle_diff = imu.attitude.yaw - Target_yaw;
 
-    newYaw = YawAnglePID.PIDCalc(0, imu.attitude.yaw - Target_yaw);
-    Component.Yaw_angle = (newYaw + lastYaw)/2;
-    lastYaw = newYaw;
+    if(angle_diff > pi) angle_diff = -(2*pi - angle_diff);
+    if(angle_diff < -pi) angle_diff = (2*pi + angle_diff);
+
+
+    if (angle_diff > deadZone*pi/180 || angle_diff < -deadZone*pi/180) {
+        angle_diff += (angle_diff > 0) ? bias*pi/180 : bias*(-pi)/180;
+    }
+    else {
+        angle_diff = 0;
+    }
+
+    Component.Yaw_angle = YawAnglePID.PIDCalc(0, angle_diff);
 
     // Component.Roll_angle = RollAnglePID.PIDCalc(0, imu.attitude.rol - Target_roll);
     // Component.Pitch_angle = PitchAnglePID.PIDCalc(0, imu.attitude.pitch - Target_pitch);
@@ -451,12 +462,6 @@ void Propeller_I2C::angle_ctrl()
     // data[Parameter.InID[2]] = Parameter.BasePWM[2] + Sign_V33[Parameter.InID[2]] * (+ Component.Roll_angle - Component.Pitch_angle);
     // data[Parameter.InID[3]] = Parameter.BasePWM[3] + Sign_V33[Parameter.InID[3]] * (+ Component.Roll_angle + Component.Pitch_angle);
 
-    if (Component.Yaw_angle > deadZone*3.14/180 || Component.Yaw_angle < -deadZone*3.14/180) {
-        Component.Yaw_angle += (Component.Yaw_angle > 0) ? bias*3.14/180 : bias*(-3.14)/180;
-    }
-    else {
-        Component.Yaw_angle = 0;
-    }
 
     // pid
 
@@ -468,11 +473,11 @@ void Propeller_I2C::angle_ctrl()
     // output limit: min and max
 
     for (int i = 0; i < 4; i++){
-        if(data[Parameter.OutID[i]] < Parameter.InitPWM){
+        if(data[Parameter.OutID[i]] < Parameter.InitPWM - 10){
             data[Parameter.OutID[i]] = (data[Parameter.OutID[i]] < Parameter.InitPWM - outMax) ? Parameter.InitPWM - outMax : data[Parameter.OutID[i]];
             data[Parameter.OutID[i]] = (data[Parameter.OutID[i]] > Parameter.InitPWM - deadBand) ? Parameter.InitPWM - deadBand : data[Parameter.OutID[i]];
         }
-        if(data[Parameter.OutID[i]] > Parameter.InitPWM){
+        if(data[Parameter.OutID[i]] > Parameter.InitPWM + 10){
             data[Parameter.OutID[i]] = (data[Parameter.OutID[i]] > Parameter.InitPWM + outMax) ? Parameter.InitPWM + outMax : data[Parameter.OutID[i]];
             data[Parameter.OutID[i]] = (data[Parameter.OutID[i]] < Parameter.InitPWM + deadBand) ? Parameter.InitPWM + deadBand : data[Parameter.OutID[i]];
         }

@@ -435,7 +435,9 @@ void Propeller_I2C::angle_ctrl()
     static float lastYaw = 0;
     static float newYaw = 0;
     float factor = 10.0;
-    float deadZone = 5.0; //degree
+    float deadZone = 1.0; //degree
+    int deadBand = 100;
+    int outMax = 200;
     float bias = 45.0; //degree
 
     newYaw = YawAnglePID.PIDCalc(0, imu.attitude.yaw - Target_yaw);
@@ -456,14 +458,24 @@ void Propeller_I2C::angle_ctrl()
         Component.Yaw_angle = 0;
     }
 
+    // pid
+
     data[Parameter.OutID[0]] = Parameter.InitPWM + Component.Yaw_angle * factor;
     data[Parameter.OutID[1]] = Parameter.InitPWM + Component.Yaw_angle * factor;
     data[Parameter.OutID[2]] = Parameter.InitPWM + Component.Yaw_angle * factor;
     data[Parameter.OutID[3]] = Parameter.InitPWM + Component.Yaw_angle * factor;
 
+    // output limit: min and max
+
     for (int i = 0; i < 4; i++){
-        data[Parameter.OutID[i]] = (data[Parameter.OutID[i]] < Parameter.InitPWM - 60) ? Parameter.InitPWM - 60 : data[Parameter.OutID[i]];
-        data[Parameter.OutID[i]] = (data[Parameter.OutID[i]] > Parameter.InitPWM + 60) ? Parameter.InitPWM + 60 : data[Parameter.OutID[i]];
+        if(data[Parameter.OutID[i]] < Parameter.InitPWM){
+            data[Parameter.OutID[i]] = (data[Parameter.OutID[i]] < Parameter.InitPWM - outMax) ? Parameter.InitPWM - outMax : data[Parameter.OutID[i]];
+            data[Parameter.OutID[i]] = (data[Parameter.OutID[i]] > Parameter.InitPWM - deadBand) ? Parameter.InitPWM - deadBand : data[Parameter.OutID[i]];
+        }
+        if(data[Parameter.OutID[i]] > Parameter.InitPWM){
+            data[Parameter.OutID[i]] = (data[Parameter.OutID[i]] > Parameter.InitPWM + outMax) ? Parameter.InitPWM + outMax : data[Parameter.OutID[i]];
+            data[Parameter.OutID[i]] = (data[Parameter.OutID[i]] < Parameter.InitPWM + deadBand) ? Parameter.InitPWM + deadBand : data[Parameter.OutID[i]];
+        }
     }
 }
 

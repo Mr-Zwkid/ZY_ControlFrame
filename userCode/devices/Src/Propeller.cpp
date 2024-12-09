@@ -20,10 +20,12 @@ int32_t PWM_V30[7][4] = {
 };
 
 // 直接用构造函数
+// PID_Regulator_t(float kp, float ki, float kd, float pM, float iM, float dM, float oM)
 PID_Regulator_t DepthPID_V30(20, 0.005, 100, 100, 100, 100, 200);
 PID_Regulator_t PitchPID_V30(5, /*5*/ 0.04, 200, 100, 100, 100, 200);
 PID_Regulator_t RollPID_V30(2.5, /*2.5*/ 0.02, 100, 100, 100, 100, 200);
 PID_Regulator_t YawPID_V30(4, 0, 100, 30, 30, 30, 200);
+// PID_Regulator_t YawPID_V30(4, 0.005, 100, 100, 100, 100, 200);
 
 Propeller_Parameter_t Parameter_V30(InID_V30, OutID_V30, InitPWM_V30, PWM_V30, DepthPID_V30, PitchPID_V30, RollPID_V30, YawPID_V30);
 
@@ -113,7 +115,7 @@ PID_Regulator_t RollPID_V33(2.5, /*2.5*/ 0.03, 33, 50, 25, 25, 100);
 // PID_Regulator_t PitchPID_V31(40,/*5*/ 0.02, 300, 100, 100, 100, 200);
 // PID_Regulator_t RollPID_V31(20,/*2.5*/ 0.01, 150, 200, 100, 100, 200);
 
-PID_Regulator_t YawPID_V33(30, 0.02, 1000, 100, 100, 100, 200);
+PID_Regulator_t YawPID_V33(30, 0.002, 100, 100, 100, 100, 200);
 
 Propeller_Parameter_t Parameter_V33(InID_V33, OutID_V33, InitPWM_V33, PWM_V33, DepthPID_V33, PitchPID_V33, RollPID_V33, YawPID_V33);
 
@@ -431,49 +433,43 @@ void Propeller_I2C::speed_ctrl()
     data[Parameter.OutID[3]] = 1530 + Component_Calc(-Component.Yaw + Component.Vx - Component.Vy);
 }
 
-// 控制Roll, Pitch, Yaw
+// 控制Yaw
 void Propeller_I2C::angle_ctrl()
 {
-    static float lastYaw = 0;
-    static float newYaw = 0;
-    float factor = 5.0;
+    // used by filter
+    bool useFilter = true;
+    static float last_angle_diff = 0;
+    static float new_angle_diff = 0;
+    float angle_diff = 0;
+    // used by post-process
+    float factor = 1.0;
     float deadZone = 1.0; //degree
     int deadBand = 80;
     int outMax = 120;
-    float bias = 0; //degree
-    float pi = 3.14159265358;
-    float angle_diff = imu.attitude.yaw - Target_yaw;
+    // pi
+    float pi = 3.141593;
 
+    // filter
+    if(useFilter){
+        new_angle_diff = imu.attitude.yaw - Target_yaw;
+        angle_diff = (new_angle_diff + last_angle_diff) / 2;
+        last_angle_diff = new_angle_diff;
+    }
+    
+    // pre-process
     if(angle_diff > pi) angle_diff = -(2*pi - angle_diff);
     if(angle_diff < -pi) angle_diff = (2*pi + angle_diff);
-
-
-    if (angle_diff > deadZone*pi/180 || angle_diff < -deadZone*pi/180) {
-        angle_diff += (angle_diff > 0) ? bias*pi/180 : bias*(-pi)/180;
-    }
-    else {
-        angle_diff = 0;
-    }
-
-    Component.Yaw_angle = YawAnglePID.PIDCalc(0, angle_diff);
-
-    // Component.Roll_angle = RollAnglePID.PIDCalc(0, imu.attitude.rol - Target_roll);
-    // Component.Pitch_angle = PitchAnglePID.PIDCalc(0, imu.attitude.pitch - Target_pitch);
-    // data[Parameter.InID[0]] = Parameter.BasePWM[0] + Sign_V33[Parameter.InID[0]] * (- Component.Roll_angle - Component.Pitch_angle);
-    // data[Parameter.InID[1]] = Parameter.BasePWM[1] + Sign_V33[Parameter.InID[1]] * (- Component.Roll_angle + Component.Pitch_angle);
-    // data[Parameter.InID[2]] = Parameter.BasePWM[2] + Sign_V33[Parameter.InID[2]] * (+ Component.Roll_angle - Component.Pitch_angle);
-    // data[Parameter.InID[3]] = Parameter.BasePWM[3] + Sign_V33[Parameter.InID[3]] * (+ Component.Roll_angle + Component.Pitch_angle);
-
+    if (angle_diff < deadZone*pi/180 && angle_diff > -deadZone*pi/180) angle_diff = 0;
 
     // pid
+    Component.Yaw_Control = YawAnglePID.PIDCalc(0, angle_diff);
 
-    data[Parameter.OutID[0]] = Parameter.InitPWM + Component.Yaw_angle * factor;
-    data[Parameter.OutID[1]] = Parameter.InitPWM + Component.Yaw_angle * factor;
-    data[Parameter.OutID[2]] = Parameter.InitPWM + Component.Yaw_angle * factor;
-    data[Parameter.OutID[3]] = Parameter.InitPWM + Component.Yaw_angle * factor;
-
-    // output limit: min and max
-
+    // post-process
+    data[Parameter.OutID[0]] = Parameter.InitPWM + Component.Yaw_Control * factor;
+    data[Parameter.OutID[1]] = Parameter.InitPWM + Component.Yaw_Control * factor;
+    data[Parameter.OutID[2]] = Parameter.InitPWM + Component.Yaw_Control * factor;
+    data[Parameter.OutID[3]] = Parameter.InitPWM + Component.Yaw_Control * factor;
+    // output limit min and max
     for (int i = 0; i < 4; i++){
         if(data[Parameter.OutID[i]] < Parameter.InitPWM - 10){
             data[Parameter.OutID[i]] = (data[Parameter.OutID[i]] < Parameter.InitPWM - outMax) ? Parameter.InitPWM - outMax : data[Parameter.OutID[i]];

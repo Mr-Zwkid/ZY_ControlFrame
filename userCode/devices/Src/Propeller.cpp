@@ -140,9 +140,11 @@ void Propeller_I2C::Init()
     PitchPID.PIDInfo = Parameter.PitchPID_P;
     RollPID.PIDInfo = Parameter.RollPID_P;
     YawPID.PIDInfo = Parameter.YawPID_P;
+
     PitchAnglePID.PIDInfo = Parameter.PitchPID_P;
     RollAnglePID.PIDInfo = Parameter.RollPID_P;
     YawAnglePID.PIDInfo = Parameter.YawPID_P;
+    
     Target_depth = 30;
     Target_angle = 0;
     Target_roll = 0;

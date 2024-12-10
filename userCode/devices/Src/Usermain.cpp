@@ -16,7 +16,7 @@
 //------TODO:修改设备数量
 #define DEVICE_NUM 5
 
-VERSION_E Robot_Version = V33;//根据潜器版本调整，V30，V31，V32，V33
+VERSION_E Robot_Version = V31;//根据潜器版本调整，V30，V31，V32，V33
 
 // 静态实例化对象
 IMU imu;

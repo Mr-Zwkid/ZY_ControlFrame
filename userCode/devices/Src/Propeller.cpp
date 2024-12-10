@@ -452,6 +452,11 @@ void Propeller_I2C::angle_ctrl()
     int outMax = 120;
     // pi
     float pi = 3.141593;
+    //debug
+    int i = 0;
+    float temp = 0;
+    bool debug = true;
+    uint8_t TxBuffer[4] = {0};
 
     // filter
     if(useFilter){
@@ -470,10 +475,22 @@ void Propeller_I2C::angle_ctrl()
     Component.Yaw_angle = YawAnglePID.PIDCalc(0, angle_diff);
 
     // post-process
-    data[Parameter.OutID[0]] = Parameter.InitPWM + Component.Yaw_angle * factor;
-    data[Parameter.OutID[1]] = Parameter.InitPWM + Component.Yaw_angle * factor;
-    data[Parameter.OutID[2]] = Parameter.InitPWM + Component.Yaw_angle * factor;
-    data[Parameter.OutID[3]] = Parameter.InitPWM + Component.Yaw_angle * factor;
+    switch (Robot_Version) 
+    {
+        //可以根据不同版本调整螺旋桨方向（改变这个正负号 ↓）
+    case V31:
+        data[Parameter.OutID[0]] = Parameter.InitPWM + Component.Yaw_angle * factor;
+        data[Parameter.OutID[1]] = Parameter.InitPWM + Component.Yaw_angle * factor;
+        data[Parameter.OutID[2]] = Parameter.InitPWM + Component.Yaw_angle * factor;
+        data[Parameter.OutID[3]] = Parameter.InitPWM + Component.Yaw_angle * factor;
+        break;
+    default:
+        data[Parameter.OutID[0]] = Parameter.InitPWM + Component.Yaw_angle * factor;
+        data[Parameter.OutID[1]] = Parameter.InitPWM + Component.Yaw_angle * factor;
+        data[Parameter.OutID[2]] = Parameter.InitPWM + Component.Yaw_angle * factor;
+        data[Parameter.OutID[3]] = Parameter.InitPWM + Component.Yaw_angle * factor;
+        break;
+    }
     // output limit min and max
     for (int i = 0; i < 4; i++){
         if(data[Parameter.OutID[i]] < Parameter.InitPWM - 10){
@@ -484,6 +501,16 @@ void Propeller_I2C::angle_ctrl()
             data[Parameter.OutID[i]] = (data[Parameter.OutID[i]] > Parameter.InitPWM + outMax) ? Parameter.InitPWM + outMax : data[Parameter.OutID[i]];
             data[Parameter.OutID[i]] = (data[Parameter.OutID[i]] < Parameter.InitPWM + deadBand) ? Parameter.InitPWM + deadBand : data[Parameter.OutID[i]];
         }
+    }
+    // 串口发送传感器数据，输出除以100为实际弧度。
+    if(debug){
+        temp = imu.attitude.yaw; //这里可以换成需要的其他数据
+        for (int i = 0; i < 4; i++) {
+            TxBuffer[i] = '0' + (int)temp;
+            temp -= (int)temp;
+            temp *= 10;
+        }
+        HAL_UART_Transmit(&huart6, TxBuffer, sizeof(TxBuffer), 0x00ff);
     }
 }
 
